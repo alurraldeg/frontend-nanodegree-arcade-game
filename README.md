@@ -1,6 +1,14 @@
-frontend-nanodegree-arcade-game
+Frogger Game
 ===============================
 
-Students should use this rubric: https://www.udacity.com/course/viewer#!/c-ud015/l-3072058665/m-3072588797
+Run the index.html file.
+You control the character in the grass.
 
-for self-checking their submission.
+#Controlls
+*Up Arrow to go north
+*Down arrow to go south
+*Right arrow to go east
+*Left arrow to go west
+
+#Objetive
+The goal is to reach the water row without hit a vehicle

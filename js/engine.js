@@ -14,6 +14,8 @@
  * a little simpler to work with.
  */
 
+ // First we set the number of column and rows variables to be used by every js file
+var numRows = 6, numCols = 5;
 var Engine = (function(global) {
     /* Predefine the variables we'll be using within this scope,
      * create the canvas element, grab the 2D context for that canvas
@@ -28,6 +30,9 @@ var Engine = (function(global) {
     canvas.width = 505;
     canvas.height = 606;
     doc.body.appendChild(canvas);
+
+    // Declare the allEnemies (an array for all the enemies) and player variables
+    var allEnemies, player;
 
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
@@ -59,109 +64,122 @@ var Engine = (function(global) {
         win.requestAnimationFrame(main);
     };
 
-    /* This function does some initial setup that should only occur once,
-     * particularly setting the lastTime variable that is required for the
-     * game loop.
-     */
     function init() {
         reset();
         lastTime = Date.now();
         main();
     }
 
-    /* This function is called by main (our game loop) and itself calls all
-     * of the functions which may need to update entity's data. Based on how
-     * you implement your collision detection (when two entities occupy the
-     * same space, for instance when your character should die), you may find
-     * the need to add an additional function call here. For now, we've left
-     * it commented out - you may or may not want to implement this
-     * functionality this way (you could just implement collision detection
-     * on the entities themselves within your app.js file).
-     */
+    // the variables winner and loser represent whether the player have won or lost
+    var winner = loser = false;
+
+    // This function is called when the player loses
+    // It renders a You Lose Screen
+    function ilose(){
+        render();
+        loser = true;
+        ctx.textAlign = "center";
+        ctx.font = "50px sans-serif";
+        ctx.fillText( "YOU LOSE" , canvas.width/2 , canvas.height/2 );
+    }
+
+    // This function is called when the player wins
+    // It renders a You Win screen
+    function iwin(){
+        render();
+        winner = true;
+        ctx.textAlign = "center";
+        ctx.font = "50px sans-serif";
+        ctx.fillText( "YOU WIN" , canvas.width/2 , canvas.height/2 );
+    }    
+
+    //This function updates the position of the vehicles and check collisions
     function update(dt) {
-        updateEntities(dt);
-        // checkCollisions();
-    }
-
-    /* This is called by the update function  and loops through all of the
-     * objects within your allEnemies array as defined in app.js and calls
-     * their update() methods. It will then call the update function for your
-     * player object. These update methods should focus purely on updating
-     * the data/properties related to  the object. Do your drawing in your
-     * render methods.
-     */
-    function updateEntities(dt) {
-        allEnemies.forEach(function(enemy) {
-            enemy.update(dt);
-        });
-        player.update();
-    }
-
-    /* This function initially draws the "game level", it will then call
-     * the renderEntities function. Remember, this function is called every
-     * game tick (or loop of the game engine) because that's how games work -
-     * they are flipbooks creating the illusion of animation but in reality
-     * they are just drawing the entire screen over and over.
-     */
-    function render() {
-        /* This array holds the relative URL to the image used
-         * for that particular row of the game level.
-         */
-        var rowImages = [
-                'images/water-block.png',   // Top row is water
-                'images/stone-block.png',   // Row 1 of 3 of stone
-                'images/stone-block.png',   // Row 2 of 3 of stone
-                'images/stone-block.png',   // Row 3 of 3 of stone
-                'images/grass-block.png',   // Row 1 of 2 of grass
-                'images/grass-block.png'    // Row 2 of 2 of grass
-            ],
-            numRows = 6,
-            numCols = 5,
-            row, col;
-
-        /* Loop through the number of rows and columns we've defined above
-         * and, using the rowImages array, draw the correct image for that
-         * portion of the "grid"
-         */
-        for (row = 0; row < numRows; row++) {
-            for (col = 0; col < numCols; col++) {
-                /* The drawImage function of the canvas' context element
-                 * requires 3 parameters: the image to draw, the x coordinate
-                 * to start drawing and the y coordinate to start drawing.
-                 * We're using our Resources helpers to refer to our images
-                 * so that we get the benefits of caching these images, since
-                 * we're using them over and over.
-                 */
-                ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
-            }
+        if( player.row == 0 ){
+            iwin();
+        }else{
+            updateEntities(dt);
+            checkCollisions();
         }
-
-
-        renderEntities();
     }
 
-    /* This function is called by the render function and is called on each game
-     * tick. It's purpose is to then call the render functions you have defined
-     * on your enemy and player entities within app.js
-     */
+    function updateEntities(dt) {
+        allEnemies.forEach(function(enemy , i) {
+            if( !enemy.update(dt) ){ 
+                allEnemies[i] = new Enemy( Math.floor( Math.random() * (numRows - 3) + 1 ) , Math.floor( Math.random() * 100 + 100 ));
+            } 
+        });
+    }
+
+    function checkCollisions(){
+        allEnemies.forEach( function( enemy ){
+            if( enemy.row == player.row && ((enemy.x > player.x+25 && enemy.x < player.x+76)||(enemy.x+101 > player.x+25 && enemy.x+101 < player.x+76) ) ){
+                ilose();
+            }
+        })
+    }
+
+    // This function draws the Entities in the game
+    function render() {
+        if( !winner && !loser ){
+            var rowImages = [                       // Creates an array to store the images of each row
+                    'images/water-block.png'        // The top is water
+                ];
+            for( var i = rowImages.length ; i < numRows - 2 ; i++ ) rowImages[i] = 'images/stone-block.png';    // Then we add the stone rows
+            rowImages.push('images/grass-block.png');   // And then two grass rows
+            rowImages.push('images/grass-block.png');
+            var row, col;
+
+            for (row = 0; row < numRows; row++) {
+                for (col = 0; col < numCols; col++) {
+                    ctx.drawImage(Resources.get(rowImages[row]), col * 101, row * 83);
+                }
+            }
+
+            renderEntities();
+        }
+    }
+
     function renderEntities() {
-        /* Loop through all of the objects within the allEnemies array and call
-         * the render function you have defined.
-         */
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
 
         player.render();
+    }     
+
+    // This function is called to restart the game
+    function reset() {
+        // Generates new numRows and numCols values
+        numRows = Math.floor( Math.random() * 3 ) + 5;
+        numCols = Math.floor( Math.random() * 5 ) + 5;
+        // Resizes the canvas
+        canvas.height = numRows*101;
+        canvas.width = numCols * 101;
+
+        // Reset the enemies and player
+        allEnemies = [];
+        for( var i = 0 ; i <= numCols ; i++ ) allEnemies.push( new Enemy( Math.floor( Math.random() * (numRows - 3) + 1 ) , Math.floor( Math.random() * 100 + 50 )));
+        player = new Player();
     }
 
-    /* This function does nothing but it could have been a good place to
-     * handle game reset states - maybe a new game menu or a game over screen
-     * those sorts of things. It's only called once by the init() method.
-     */
-    function reset() {
-        // noop
-    }
+    
+    document.addEventListener('keyup', function(e) {
+        if( winner || loser ){
+            winner = false;
+            loser = false;
+            reset();
+        }else{
+            var allowedKeys = {
+                37: 'left',
+                38: 'up',
+                39: 'right',
+                40: 'down'
+            };
+
+            player.handleInput(allowedKeys[e.keyCode]);
+        }
+    });
 
     /* Go ahead and load all of the images we know we're going to need to
      * draw our game level. Then set init as the callback method, so that when
@@ -172,7 +190,11 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/char-cat-girl.png' , 
+        'images/char-horn-girl.png' , 
+        'images/char-pink-girl.png' , 
+        'images/char-princess-girl.png'
     ]);
     Resources.onReady(init);
 
